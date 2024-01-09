@@ -5,7 +5,9 @@ import kr.hs.gbsw.tree.article.dto.CreateCommentDto;
 import kr.hs.gbsw.tree.article.dto.DeleteCommentDto;
 import kr.hs.gbsw.tree.article.dto.UpdateCommentDto;
 import kr.hs.gbsw.tree.article.service.CommentService;
+import kr.hs.gbsw.tree.user.model.User;
 import lombok.AllArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,17 +30,19 @@ public class CommentController {
     @PostMapping("/{articleId}/comments")
     public Comment createComments(
             @PathVariable int articleId,
+            @AuthenticationPrincipal User user,
             @RequestBody CreateCommentDto dto
     ) {
-        return commentService.createComment(articleId, dto);
+        return commentService.createComment(articleId,user, dto);
     }
 
     @PutMapping("/comments/{id}")
     public Comment updateComment(
             @PathVariable int id,
+            @AuthenticationPrincipal User user,
             @RequestBody UpdateCommentDto dto
     ) {
-        Comment comment = commentService.updateComment(id, dto);
+        Comment comment = commentService.updateComment(id,user, dto);
         return comment;
     }
 

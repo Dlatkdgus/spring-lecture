@@ -6,6 +6,7 @@ import kr.hs.gbsw.tree.article.dto.CreateCommentDto;
 import kr.hs.gbsw.tree.article.dto.UpdateCommentDto;
 import kr.hs.gbsw.tree.article.model.Article;
 import kr.hs.gbsw.tree.article.repository.ArticleRepository;
+import kr.hs.gbsw.tree.user.model.User;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -32,7 +33,7 @@ public class CommentService {
         return commentRepository.findById(id).orElse(null);
     }
 
-    public Comment createComment(int articleId, CreateCommentDto dto) {
+    public Comment createComment(int articleId, User user, CreateCommentDto dto) {
         Article article = articleRepository.findById(articleId).orElse(null);
         if (article == null) {
             throw new IllegalArgumentException("존재하지 않는 게시물입니다.");
@@ -45,6 +46,7 @@ public class CommentService {
                 dto.getContent(),
                 dto.getAuthor(),
                 dto.getPassword(),
+                user,
                 article,
                 now,
                 now
@@ -52,21 +54,29 @@ public class CommentService {
         return commentRepository.save(comment);
     }
 
-    public Comment updateComment(int id, UpdateCommentDto dto) {
+    public Comment updateComment(int id, User user, UpdateCommentDto dto) {
         // 있어!, 댓글을 일딴 DB에서 조회하자
         Comment original = getComment(id);
-        // 그다음은? 오리지널 비밀번호랑 사용자가 준 비밀번호가 같은지 검사한다.
-        if (original.getPassword().equals(dto.getPassword())) {
-            // 이제야 수정 절차를 진행해도 되긋네.
-            original.setContent(dto.getContent());
-            original.setAuthor(dto.getAuthor());
-            original.setUpdatedAt(LocalDateTime.now());
-            return commentRepository.save(original);
+        if (original.getUser() != null) {
+            // 사용자가 로그인하였는가?
+            if (user == null) {
+                throw new IllegalArgumentException("로그인이 필요합니다.");
+            }
+            // 게시물 작성자와 로그인한 사람이 동일한가?
+            if (!original.getUser().getId().equals(user.getId())) {
+                throw new IllegalArgumentException("내 글만 수정 가능합니다.");
+            }
+        } else {        // 익명 등록 게시물
+            if (!original.getPassword().equals(dto.getPassword())) {
+                throw new IllegalArgumentException("비밀번호가 틀렸습니다.");
+            }
         }
-        // 그럼 여기서 부터는 오류가 생긴 지점이네.
-        // 여기는 비밀번호가 안맞을때
-        throw new IllegalArgumentException("비밀번호가 틀렸습니다.");
+        original.setContent(dto.getContent());
+        original.setAuthor(dto.getAuthor());
+        original.setUpdatedAt(LocalDateTime.now());
+        return commentRepository.save(original);
     }
+
 
     public void deleteComment(int id, String password) {
         Comment original = getComment(id);
